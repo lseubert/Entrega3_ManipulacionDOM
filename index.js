@@ -3,27 +3,26 @@ const getData = async () => {
     "https://gist.githubusercontent.com/josejbocanegra/b1873c6b7e732144355bb1627b6895ed/raw/d91df4c8093c23c41dce6292d5c1ffce0f01a68b/newDatalog.json"
   );
   const data = await fetchRequest.json();
-  //console.log(data);
   return data;
 };
 
-const getMCC = async () => {
-  const data = await convertArray();
+const getMCC = (dataSet, event) => {
+  const data = convertArray(dataSet, event);
   let TP = 0,
     TN = 0,
     FP = 0,
     FN = 0;
   data.forEach((ele) => {
-    if (ele.squirrel && ele.pizza) {
+    if (ele.squirrel && ele.event) {
       TP++;
     }
-    if (ele.squirrel && !ele.pizza) {
+    if (ele.squirrel && !ele.event) {
       FP++;
     }
-    if (!ele.squirrel && ele.pizza) {
+    if (!ele.squirrel && ele.event) {
       FN++;
     }
-    if (!ele.squirrel && !ele.pizza) {
+    if (!ele.squirrel && !ele.event) {
       TN++;
     }
   });
@@ -34,36 +33,20 @@ const getMCC = async () => {
   );
 };
 
-const obj = {
-  squirrel: false,
-  pizza: false,
-};
-
-const convertArray = async () => {
-  const dataSet = await getData();
-  let array = [];
-
-  dataSet.forEach((ele) => {
-    const obj = {
+const convertArray = (dataSet, event) => {
+  return dataSet.map((ele) => {
+    return {
       squirrel: ele.squirrel,
-      pizza: ele.events.includes("pizza"),
+      event: ele.events.includes(event),
     };
-    array.push(obj);
   });
-  return array;
 };
 
-console.log(convertArray());
-
-getMCC();
-
-const createTable = async () => {
+const createEventTable = async () => {
   const tableBody = document.querySelector(".table-body");
-  console.log(tableBody);
   const data = await getData();
 
   data.forEach((ele, index) => {
-    console.log(ele);
     tableBody.insertAdjacentHTML(
       "beforeend",
       `<tr class="${ele.squirrel ? "table-danger" : ""}"><th scope="row">${
@@ -73,4 +56,33 @@ const createTable = async () => {
   });
 };
 
-createTable();
+const createCorrelationTable = async () => {
+  const tableBody = document.querySelector(".correlation-table-body");
+  const data = await getData();
+
+  let array = data.flatMap((ele) => ele.events);
+  array = Array.from(new Set(array));
+
+  let resArray = array.map((ele) => {
+    return {
+      event: ele,
+      correlation: getMCC(data, ele),
+    };
+  });
+
+  resArray.sort((a, b) => {
+    return a.correlation < b.correlation;
+  });
+
+  resArray.forEach((ele, index) => {
+    tableBody.insertAdjacentHTML(
+      "beforeend",
+      `<tr><th scope="row">${index + 1}</th><td>${ele.event}</td><td>${
+        ele.correlation
+      }</td></tr>`
+    );
+  });
+};
+
+createEventTable();
+createCorrelationTable();
